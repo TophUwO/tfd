@@ -28,51 +28,27 @@
  *****************************************************************************************/
 
 /**
- * \file  tfd-sandbox.cpp
- * \brief implementation of sandbox application classes and functions
- *
- * *tfd-sandbox* serves as not only the dedicated test application for the modules exposed by tfd itself,
- * but also as an example application that demonstrates basic as well as advanced usage of the library.
+ * \file  tfd.hpp
+ * \brief base declarations and symbols used by the entire tfd library
  */
 
-/* stdlib includes */
+#pragma once
 
-/* sandbox includes */
-#include <tfd-sandbox/src/include/tfd-sandbox.hpp>
+#if (defined _MSC_VER)
+    #define TFD_EXTERN extern
 
+    #if (defined __TFD_BUILD_SO__)
+        #define TFD_API __declspec(dllexport)
+    #elif (defined __TFD_USE_SO__)
+        #define TFD_API __declspec(dllimport)
+    #endif
+#else
+    #error At this moment, only the Microsoft Visual C++ compiler (MSVC) is supported.
+#endif
 
-namespace tfd::sandbox {
-    MainWindow::MainWindow(QSize const &dim, QString const &title)
-        : QMainWindow(nullptr)
-    {
-        /* Setup ui. */
-        setupUi(this);
-        setFixedSize(dim);
-        setWindowTitle(title);
-    }
-
-    MainWindow::~MainWindow() { }
-}
-
-namespace tfd::sandbox {
-    SandboxApplication::SandboxApplication(int argc, char *argv[])
-        : QApplication(argc, argv)
-    {
-        /* Instantiate main window. */
-        m_mainWindow = new sandbox::MainWindow(QSize(1200, 800), "Tophy's Flight Instruments - Sandbox");
-
-        /* Since the main window is initially invisible, show it explicitly. */
-        m_mainWindow->show();
-    }
-
-    SandboxApplication::~SandboxApplication() {
-        delete m_mainWindow;
-    }
-
-
-    int SandboxApplication::startSandbox() {
-        return exec();
-    }
-}
+/* static assertions */
+static_assert(sizeof(char) == 1, "sizeof(char) must be exactly one byte!");
+static_assert(sizeof(int) == 4, "sizeof(int) must be exactly four bytes!");
+static_assert(sizeof(float) == 4, "sizeof(float) must be exactly four bytes!");
 
 

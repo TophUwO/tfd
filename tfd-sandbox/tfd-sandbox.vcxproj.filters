@@ -23,14 +23,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <QtUic Include="src\forms\ui_mainwnd.ui">
+    <QtUic Include="src\forms\gui_mainwnd.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\include\tfd-sandbox.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -39,5 +34,10 @@
     <ClCompile Include="src\tfd-sandbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="src\include\tfd-sandbox.hpp">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

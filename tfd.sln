@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tfd", "tfd\tfd.vcxproj", "{1118B350-D543-424F-8049-1849D59509AE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tfd-sandbox", "tfd-sandbox\tfd-sandbox.vcxproj", "{14691197-BC53-421D-BF6E-52BD78323A90}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1118B350-D543-424F-8049-1849D59509AE} = {1118B350-D543-424F-8049-1849D59509AE}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
