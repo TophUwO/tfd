@@ -121,9 +121,10 @@ namespace tfd {
          * \brief  adds an object to the object radar
          * 
          * This function allows specifying the object's initial position and altitude. This can
-         * be changed at any point using \link{setObjectProperty()}. Each object will be represented
-         * by its own icon on the object radar. What icon is shown exactly depends on the type of the
-         * object as well as its altitude relative to the radar center.
+         * be changed at any point using ObjectRadar::setProperty(QString, ObjectType, QVariant).
+         * Each object will be represented by its own icon on the object radar. What icon is
+         * shown exactly depends on the type of the object as well as its altitude relative to
+         * the radar center.
          *
          * \param  [in] ident unique name for the object that will be shown on the object radar
          * \param  [in] type object type to create
@@ -140,8 +141,8 @@ namespace tfd {
          * \param  [in] ident identifier of the object to remove
          * \return *true* on success, *false* on failure
          * \note   This will instantly remove the object from the radar screen. To only make it invisible,
-         *         use \link{setObjectProperty(ident, QObject::Property::Visibility, false)} in order to
-         *         only make it invisible while keeping its state.
+         *         use *ObjectRadar::setProperty("<...>", Property::Visibility, false)* in order to only
+         *         make it invisible while keeping its state.
          */
         bool removeObject(QString const &ident);
         /**
@@ -159,27 +160,27 @@ namespace tfd {
         /**
          * \brief  retrieves a copy of a view property with the given *property index*
          * \param  [in] prop property index to get value for
-         * \return \link{QVariant} holding the property value
+         * \return *QVariant* holding the property value
          * \note   This function is used for retrieving view properties. For retrieving
          *         object properties, use the overloaded version of this function with the
          *         *string identifier* as its first parameter.
-         * \note   If the property could not be retrieved, using \link{isValid()} on the
+         * \note   If the property could not be retrieved, using *QVariant::isValid* on the
          *         returned value will return *true*.
          * \see    ObjectRadar::Property
-         * \see    getProperty
+         * \see    ObjectRadar::getProperty(QString, ObjectRadar::Property)
          */
         QVariant getProperty(ObjectRadar::Property prop) const noexcept;
         /**
          * \brief  retrieves a copy of an object property with the given *property index*
          * \param  [in] prop property index to get value for
-         * \return \link{QVariant} holding the property value
+         * \return *QVariant* holding the property value
          * \note   This function is used for retrieving object properties. For retrieving
          *         view properties, use the overloaded version of this function with the
          *         *property index* as its first parameter.
-         * \note   If the property could not be retrieved, using \link{isValid()} on the
+         * \note   If the property could not be retrieved, using *QVariant::isValid* on the
          *         returned value will return *true*.
          * \see    ObjectRadar::Property
-         * \see    getProperty
+         * \see    ObjectRadar::getProperty(ObjectRadar::Property)
          */
         QVariant getProperty(QString const &ident, ObjectRadar::Property prop) const noexcept;
         /**
@@ -194,7 +195,7 @@ namespace tfd {
          *         match the value type for the property, the function fails.
          * \note   If the property index could not be found, the function fails.
          * \see    ObjectRadar::Property
-         * \see    setProperty
+         * \see    ObjectRadar::setProperty(QString, ObjectRadar::Property, QVariant)
          */
         bool setProperty(ObjectRadar::Property prop, QVariant const &val);
         /**
@@ -206,7 +207,7 @@ namespace tfd {
          *         match the value type for the property, the function fails.
          * \note   If the property index could not be found, the function fails.
          * \see    ObjectRadar::Property
-         * \see    setProperty
+         * \see    ObjectRadar::setProperty(ObjectRadar::Property, QVariant)
          */
         bool setProperty(QString const &ident, ObjectRadar::Property prop, QVariant const &val);
 
