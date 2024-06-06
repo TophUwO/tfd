@@ -104,11 +104,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\include\gnss.hpp" />
+    <QtMoc Include="src\include\radar.hpp" />
     <ClInclude Include="src\include\tfd.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\gnss.cpp" />
+    <ClCompile Include="src\radar.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

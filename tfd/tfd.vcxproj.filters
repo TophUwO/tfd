@@ -25,13 +25,15 @@
     <ClInclude Include="src\include\tfd.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\include\gnss.hpp">
-      <Filter>Header Files\modules</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\gnss.cpp">
+    <ClCompile Include="src\radar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="src\include\radar.hpp">
+      <Filter>Header Files\modules</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

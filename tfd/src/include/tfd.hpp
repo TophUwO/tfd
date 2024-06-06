@@ -30,6 +30,9 @@
 /**
  * \file  tfd.hpp
  * \brief base declarations and symbols used by the entire tfd library
+ * 
+ * tfd consists of a collection of widgets, each representing an electronic flight instrument
+ * as commonly seen in commercial as well as smaller aircraft.
  */
 
 #pragma once

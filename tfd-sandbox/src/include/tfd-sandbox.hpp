@@ -45,7 +45,7 @@
 #include <ui_gui_mainwnd.h>
 
 /* tfd includes */
-#include <tfd/src/include/gnss.hpp>
+#include <tfd/src/include/radar.hpp>
 
 
 /**
@@ -74,7 +74,15 @@ namespace tfd::sandbox {
          * \param [in] title window caption used for the new window
          */
         explicit MainWindow(QSize const &dim, QString const &title);
-        virtual ~MainWindow();
+        ~MainWindow();
+
+    private:
+        tfd::ObjectRadar *m_radar; /**< pointer to the object radar */
+
+        /**
+         * \brief instantiate view widgets and set-up layouts and connections
+         */
+        void int_instantiateWidgets();
     };
 
     /**
@@ -96,7 +104,7 @@ namespace tfd::sandbox {
          * \param [in] argv command-line arguments as string array
          */
         explicit SandboxApplication(int argc, char *argv[]);
-        virtual ~SandboxApplication();
+        ~SandboxApplication();
 
         /**
          * \brief  starts the main-loop and executes the sandbox application
