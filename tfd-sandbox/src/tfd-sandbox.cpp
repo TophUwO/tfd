@@ -49,6 +49,10 @@ namespace tfd::sandbox {
         setupUi(this);
         setFixedSize(dim);
         setWindowTitle(title);
+
+        /* Set-up object radar. */
+        m_radar = new tfd::ObjectRadar(QSize(600, 600), this);
+        loCenter->replaceWidget(wgPlaceholder, m_radar);
     }
 
     MainWindow::~MainWindow() { }

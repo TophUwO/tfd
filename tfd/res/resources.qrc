@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>fonts/B612_Mono.ttf</file>
+    </qresource>
+</RCC>

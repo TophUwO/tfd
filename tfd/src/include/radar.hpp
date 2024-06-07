@@ -75,12 +75,13 @@ namespace tfd {
             /* view properties */
             AutoUpdate,      /**< [bool] automatically update view when property is changed */
             UpdateRate,      /**< [float] update rate per second (essentially FPS) {0.1, 240} */
-            DisplayFont,     /**< [str] main display font */
+            DefaultFont,     /**< [str] main display font */
+            DefaultFontSize, /**< [int] font size for main display font */
             ForegroundColor, /**< [color] color used for lines and standard text */
             BackgroundColor, /**< [color] color used for backgrounds */
             RadarCenter,     /**< [point] {lat, lon} position of radar center */
             RadarAltitude,   /**< [float] altitude of radar center, in meters above sea-level */
-            RadarRange,      /**< [point] radar range {min, max}, in meters relative to the radar center */
+            RadarRange,      /**< [size] radar range {min, max}, in meters relative to the radar center */
 
             /* object properties */
             Identifier,      /**< [str] object identifier */
@@ -89,7 +90,9 @@ namespace tfd {
             Color,           /**< [color] RGBA color */
             Area,            /**< [size] size for area */
             Altitude,        /**< [float] altitude of object (not for areas) */
-            Visibility       /**< [bool] object visible flag */
+            Visibility,      /**< [bool] object visible flag */
+
+            __N__            /**< *only used internally* */
         };
         Q_ENUM(tfd::ObjectRadar::Property);
         /**
@@ -106,6 +109,8 @@ namespace tfd {
             Marker,  /**< marker object */
             Path,    /**< path object */
             Area,    /**< area object */
+
+            __N__    /**< *only used internally* */
         };
         Q_ENUM(tfd::ObjectRadar::ObjectType);
 
@@ -165,7 +170,7 @@ namespace tfd {
          *         object properties, use the overloaded version of this function with the
          *         *string identifier* as its first parameter.
          * \note   If the property could not be retrieved, using *QVariant::isValid* on the
-         *         returned value will return *true*.
+         *         returned value will return *false*.
          * \see    ObjectRadar::Property
          * \see    ObjectRadar::getProperty(QString, ObjectRadar::Property)
          */
@@ -178,7 +183,7 @@ namespace tfd {
          *         view properties, use the overloaded version of this function with the
          *         *property index* as its first parameter.
          * \note   If the property could not be retrieved, using *QVariant::isValid* on the
-         *         returned value will return *true*.
+         *         returned value will return *false*.
          * \see    ObjectRadar::Property
          * \see    ObjectRadar::getProperty(ObjectRadar::Property)
          */
@@ -210,6 +215,17 @@ namespace tfd {
          * \see    ObjectRadar::setProperty(ObjectRadar::Property, QVariant)
          */
         bool setProperty(QString const &ident, ObjectRadar::Property prop, QVariant const &val);
+
+    protected:
+        /**
+         * \brief reimplements the default widget paint event
+         * 
+         * This function has to be overridden as the widget is custom painted. Drawing never
+         * happens outside this handler.
+         * 
+         * \param [in] pe additional info for the pending paint operation
+         */
+        virtual void paintEvent(QPaintEvent *pe) override;
 
     private:
         std::unique_ptr<ObjectRadarPrivate> m_data; /**< pointer to internal data */
