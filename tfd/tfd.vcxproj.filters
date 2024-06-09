@@ -20,6 +20,9 @@
     <Filter Include="Header Files\modules">
       <UniqueIdentifier>{75dfb20b-bbd8-422b-a09d-42ecbacccde3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\tests">
+      <UniqueIdentifier>{f89740b7-8802-437d-9516-f42b538c104d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\include\tfd.hpp">
@@ -27,13 +30,11 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\radar.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <QtMoc Include="src\include\radar.hpp">
       <Filter>Header Files\modules</Filter>
+    </QtMoc>
+    <QtMoc Include="src\radar.cpp">
+      <Filter>Source Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

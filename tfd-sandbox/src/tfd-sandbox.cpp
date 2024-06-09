@@ -35,8 +35,6 @@
  * but also as an example application that demonstrates basic as well as advanced usage of the library.
  */
 
-/* stdlib includes */
-
 /* sandbox includes */
 #include <tfd-sandbox/src/include/tfd-sandbox.hpp>
 
@@ -47,7 +45,7 @@ namespace tfd::sandbox {
     {
         /* Setup ui. */
         setupUi(this);
-        setFixedSize(dim);
+        resize(dim);
         setWindowTitle(title);
 
         /* Set-up object radar. */
@@ -62,6 +60,11 @@ namespace tfd::sandbox {
     SandboxApplication::SandboxApplication(int argc, char *argv[])
         : QApplication(argc, argv)
     {
+        /* Run tests. */
+        if (QCoreApplication::arguments().contains("--run-tests")) {
+            tfd::RunObjectRadarTests();
+        }
+
         /* Instantiate main window. */
         m_mainWindow = new sandbox::MainWindow(QSize(1200, 800), "Tophy's Flight Instruments - Sandbox");
 

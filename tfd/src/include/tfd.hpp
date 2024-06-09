@@ -39,15 +39,18 @@
 
 #if (defined _MSC_VER)
     #define TFD_EXTERN extern
-
+    
     #if (defined __TFD_BUILD_SO__)
         #define TFD_API __declspec(dllexport)
     #elif (defined __TFD_USE_SO__)
         #define TFD_API __declspec(dllimport)
+    #else
+        #error Incorrect project or build configuration. Check build settings.
     #endif
 #else
     #error At this moment, only the Microsoft Visual C++ compiler (MSVC) is supported.
 #endif
+
 
 /* static assertions */
 static_assert(sizeof(char) == 1, "sizeof(char) must be exactly one byte!");

@@ -50,7 +50,10 @@
  * \brief     holds all classes and functionality exposed by the tfd library
  */
 namespace tfd {
-    class ObjectRadarPrivate; /**< internal data for object radar widget */
+    namespace tests {
+        class ObjectRadarTests; /**< object radar tests */
+    }
+    class ObjectRadarPrivate;   /**< internal data for object radar widget */
 
     /**
      * \class ObjectRadar
@@ -65,6 +68,8 @@ namespace tfd {
         Q_CLASSINFO("version", "1.0.0")
 
     public:
+        friend class tests::ObjectRadarTests;
+
         /**
          * \enum  Property
          * \brief enumeration for property fields
@@ -88,7 +93,7 @@ namespace tfd {
             Type,            /**< [ObjectType] object type */
             Position,        /**< [point] position (latitude, longitude) */
             Color,           /**< [color] RGBA color */
-            Area,            /**< [size] size for area */
+            Area,            /**< [size] size of object (only for *area* type) */
             Altitude,        /**< [float] altitude of object (not for areas) */
             Visibility,      /**< [bool] object visible flag */
 
@@ -134,13 +139,13 @@ namespace tfd {
          * \param  [in] ident unique name for the object that will be shown on the object radar
          * \param  [in] type object type to create
          * \param  [in] pos (initial) [long, lat] position of object on object radar
-         * \param  [in] alt (initial) altitude in meters above sea-level
+         * \param  [in] alt (initial) altitude in meters above sea-level {def: 0}
          * \return *true* on success, *false* on error
          * \note   If an object with the same identifier as **ident** already exists, the function
          *         will fail.
          * \note   To disable altitude indicators for individual objects, set their altitude to *NaN*.
          */
-        bool addObject(QString const &ident, ObjectRadar::ObjectType type, QPointF const &pos, float alt);
+        bool addObject(QString const &ident, ObjectRadar::ObjectType type, QPointF const &pos, float alt = 0.f);
         /**
          * \brief  removes an object from the object radar
          * \param  [in] ident identifier of the object to remove
@@ -230,6 +235,15 @@ namespace tfd {
     private:
         std::unique_ptr<ObjectRadarPrivate> m_data; /**< pointer to internal data */
     };
+
+
+    /**
+     * \brief  runs object radar unit tests
+     * \return *0* if all tests were successful, or non-zero if at least one test failed
+     * \note   This function will be called before the main window is shown, but only if
+     *         the application is started with the '--run-tests' command-line option
+     */
+    TFD_EXTERN TFD_API int RunObjectRadarTests();
 }
 
 
