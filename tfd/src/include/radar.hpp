@@ -45,10 +45,6 @@
 #include <tfd/src/include/tfd.hpp>
 
 
-/**
- * \namespace tfd
- * \brief     holds all classes and functionality exposed by the tfd library
- */
 namespace tfd {
     namespace tests {
         class ObjectRadarTests; /**< object radar tests */
@@ -78,15 +74,18 @@ namespace tfd {
          */
         enum class Property {
             /* view properties */
-            AutoUpdate,      /**< [bool] automatically update view when property is changed */
             UpdateRate,      /**< [float] update rate per second (essentially FPS) {0.1, 240} */
-            DefaultFont,     /**< [str] main display font */
-            DefaultFontSize, /**< [int] font size for main display font */
+            StaticTextFont,  /**< [FontProperties] main display font used for static text WITHIn the radar view */
+            LabelFont,       /**< [FontProperties] font used for labels OUTSIDE of the radar view */
+            ObjectLabelFont, /**< [FontProperties] font used for labels of radar objects */
             ForegroundColor, /**< [color] color used for lines and standard text */
             BackgroundColor, /**< [color] color used for backgrounds */
             RadarCenter,     /**< [point] {lat, lon} position of radar center */
             RadarAltitude,   /**< [float] altitude of radar center, in meters above sea-level */
             RadarRange,      /**< [size] radar range {min, max}, in meters relative to the radar center */
+            AreaOpacity,     /**< [int] opacity of the fill color used for area objects */
+            OutlineStrength, /**< [int] width in pixels for the area outline */
+            OutlineStyle,    /**< [Qt::PenStyle] style (solid, dashed, dotted, etc.) used for outlines */
 
             /* object properties */
             Identifier,      /**< [str] object identifier */
@@ -96,7 +95,7 @@ namespace tfd {
             Area,            /**< [size] size of object (only for *area* type) */
             Altitude,        /**< [float] altitude of object (not for areas) */
             Visibility,      /**< [bool] object visible flag */
-
+                             
             __N__            /**< *only used internally* */
         };
         Q_ENUM(tfd::ObjectRadar::Property);
@@ -153,11 +152,14 @@ namespace tfd {
          * \note   This will instantly remove the object from the radar screen. To only make it invisible,
          *         use *ObjectRadar::setProperty("<...>", Property::Visibility, false)* in order to only
          *         make it invisible while keeping its state.
+         * \note   If the object that is to be removed is currently being *tracked*, the object is *untracked*
+         *         before it is removed. The *tracked* state will not be propagated to a different object.
          */
         bool removeObject(QString const &ident);
         /**
          * \brief removes all objects from the object radar
          * \note  If no objects are present, this function does nothing.
+         * \note  The object that is currently being *tracked*, if there is any, is also removed.
          */
         void removeAllObjects();
         /**
@@ -221,6 +223,24 @@ namespace tfd {
          */
         bool setProperty(QString const &ident, ObjectRadar::Property prop, QVariant const &val);
 
+        /**
+         * \brief  retrieves the identifier of the object that is currently being tracked
+         * 
+         * To display and update labels inside and outside the radar view, the object radar
+         * requires an object that is considered a reference to base behavior of warnings and
+         * stats on. This object is referred to as the *tracked object*. Normally, if the radar
+         * view is used in a remote control, the *tracked object* should be the thing that is
+         * being controlled.
+         * 
+         * \return *std::optional* with the identifier of the object as *QString*, or an empty
+         *         optional if there is no object currently being tracked
+         */
+        std::optional<QString> const getTrackedObject() const noexcept;
+        /**
+         * \brief 
+         */
+        void setTrackedObject(QString const &ident) noexcept;
+
     protected:
         /**
          * \brief reimplements the default widget paint event
@@ -232,9 +252,99 @@ namespace tfd {
          */
         virtual void paintEvent(QPaintEvent *pe) override;
 
+    signals:
+        /**
+         * \brief emitted when a view property is updated
+         * \param [in] prop index of the (view) property that was updated
+         * \param [in] new value of the property
+         */
+        void propertyValueChanged(ObjectRadar::Property prop, QVariant const &val);
+
     private:
         std::unique_ptr<ObjectRadarPrivate> m_data; /**< pointer to internal data */
     };
+
+
+    /**
+     * \class RadarArea 
+     * \brief represents an area for the radar view
+     * 
+     * RadarAreas are used to describe areas of almost any appearance as static objects in the
+     * radar view. They are closed by default (i.e., last vertex is connected to first vertex)
+     * and are outlined and filled with the color specified by their radar object proxy. While
+     * thee outline is displayed at full strength, the fill color may have an opacity effect that
+     * can be controlled by setting the *AreaOpacity* property.
+     * 
+     * \note  For the area to be displayed, the area needs to be comprised of at least three
+     *        vertices.
+     */
+    class RadarArea {
+        friend class ObjectRadar;
+
+    public:
+        RadarArea()                      = default;
+        RadarArea(RadarArea const &area) = default;
+        ~RadarArea()                     = default;
+        /**
+         * \brief constructs a new area with a predefined list of vertices
+         * \param [in] v list of vertices in order
+         * \note  Parameter *v* can be empty.
+         */
+        explicit  RadarArea(std::initializer_list<QPointF> v, bool smooth = false)
+            : m_vertices(v), m_isSmooth(smooth)
+        { }
+
+        /**
+         * \brief  adds a vertex to the area
+         * \param  [in] vertex vertex that is to be added, in [lat, long] coordinates
+         * \return *true* if the vertex could be added, *false* if there was an error
+         */
+        bool addVertex(QPointF const &vertex) noexcept;
+        /**
+         * \brief  removes the vertex at the given index from the area
+         * \param  [in] index of the vertex that is to be removed
+         * \return *true* if the vertex was removed, or *false* if there was an error
+         * \note   Indicies are in range [0, n - 1], where *n* is the current number of
+         *         vertices in the area.
+         * \note   If the index is out of range, the function does nothing.
+         */
+        bool removeVertex(int index) noexcept;
+        /**
+         * \brief removes all vertices from the area
+         */
+        void clearVertices() noexcept;
+
+        /**
+         * \brief  retrieves the value of the *smooth* flag for the current RadarArea
+         * 
+         * The value of the *smooth* flag determines in what way vertices of paths and outlines are
+         * joined. If the value of the *smooth* flag is *true*, cubic bezier curves are used while
+         * straight lines are used if the value is *false*.
+         * 
+         * \return *true* if the *smooth* flag is set, or *false* if not
+         */
+        bool isSmooth() const noexcept { return m_isSmooth; }
+        /**
+         * \brief updates the value of the *smooth* flag for the current RadarArea
+         * \param [in] smooth the new value for the *smooth* flag
+         */
+        void setSmooth(bool smooth) { m_isSmooth = smooth; }
+
+    private:
+        bool                 m_isSmooth = false; /**< whether or not to use bezier curves for the outline */
+        std::vector<QPointF> m_vertices;         /**< vertices in order */
+    };
+    Q_DECLARE_METATYPE(RadarArea);
+
+
+    /**
+     * \class RadarPath
+     * \brief 
+     */
+    class RadarPath {
+
+    };
+    Q_DECLARE_METATYPE(RadarPath);
 
 
     /**

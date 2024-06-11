@@ -52,9 +52,56 @@
 #endif
 
 
-/* static assertions */
+/* Check some basic requirements. */
 static_assert(sizeof(char) == 1, "sizeof(char) must be exactly one byte!");
 static_assert(sizeof(int) == 4, "sizeof(int) must be exactly four bytes!");
 static_assert(sizeof(float) == 4, "sizeof(float) must be exactly four bytes!");
+
+
+
+/**
+ * \namespace tfd
+ * \brief     holds all classes and functionality exposed by the tfd library
+ */
+namespace tfd {
+    /**
+     * \class FontProperties
+     * \brief holds properties for display fonts used by tfd widgets
+     */
+    struct FontProperties {
+        FontProperties()                            = default;
+        FontProperties(FontProperties const &props) = default;
+        ~FontProperties()                           = default;
+        /**
+         * \brief construct a new FontProperties object
+         * \param [in] fam font family (nearest match)
+         * \param [in] pt size of the new font
+         * \param [in] weight boldness of the new font (100, 200, ..., 600) {def: -1}
+         * \param [in] italic whether or not the font should be *cursive* (*italic*) {def: false} 
+         */
+        explicit FontProperties(QString const &fam, int pt, int weight = -1, bool italic = false)
+            : m_family(fam), m_pointSize(pt), m_weight(weight), m_isItalic(italic)
+        { }
+
+        QString m_family    = ":/fonts/B612_Mono.ttf"; /**< name of font family */
+        int     m_pointSize = -1;                      /**< font size, in pt */
+        int     m_weight    = -1;                      /**< font weight (regular, bold, heavy, black, ...) */
+        bool    m_isItalic  = false;                   /**< whether or not the font will appear cursive or not */
+    };
+    Q_DECLARE_METATYPE(FontProperties);
+
+    /**
+     * \brief introduce alias as a short form    
+     */
+    using FP = FontProperties;
+
+    /**
+     * \defgroup custom type IDs 
+     * \brief    defines type ID for classes and data-structures that are to be used as values (used internally
+     *           in the property system for type checking, etc.)
+     */
+    constexpr inline QMetaType::Type gl_FPType = static_cast<QMetaType::Type>(QMetaType::Type::User + 1);
+    constexpr inline QMetaType::Type gl_PAType = static_cast<QMetaType::Type>(QMetaType::Type::User + 2);
+}
 
 

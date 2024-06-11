@@ -82,8 +82,10 @@ namespace tfd {
         static constexpr ObjectRadar::ObjectType operator -(ObjectRadar::ObjectType first, int offset) noexcept {
             return operator +(first, -offset);
         }
-        static constexpr float gl_FType = static_cast<float>(ObjectRadar::ObjectType::Vehicle);   /**< lowest type index */
-        static constexpr float gl_LType = static_cast<float>(ObjectRadar::ObjectType::__N__ - 1); /**< highest type index */
+        static constexpr float gl_FType   = static_cast<float>(ObjectRadar::ObjectType::Vehicle);   /**< lowest type index */
+        static constexpr float gl_LType   = static_cast<float>(ObjectRadar::ObjectType::__N__ - 1); /**< highest type index */
+        static constexpr float gl_FPStyle = static_cast<float>(Qt::NoPen);                          /**< first valid outline style */
+        static constexpr float gl_LPStyle = static_cast<float>(Qt::DashDotDotLine);                 /**< last valid outline style */
 
         /**
          * \struct __PropertyInfoEntry__
@@ -103,24 +105,27 @@ namespace tfd {
          */
         static constexpr std::array gl_PropertyTypeLUT = {
             /* view properties */
-            PII{ ObjectRadar::Property::AutoUpdate,      QMetaType::Bool                                },
-            PII{ ObjectRadar::Property::UpdateRate,      QMetaType::Float,   QSizeF{ 0.1f, 240.f }      },
-            PII{ ObjectRadar::Property::DefaultFont,     QMetaType::QFont,                              },
-            PII{ ObjectRadar::Property::DefaultFontSize, QMetaType::Int                                 },
-            PII{ ObjectRadar::Property::ForegroundColor, QMetaType::QColor                              },
-            PII{ ObjectRadar::Property::BackgroundColor, QMetaType::QColor                              },
-            PII{ ObjectRadar::Property::RadarCenter,     QMetaType::QPointF                             },
-            PII{ ObjectRadar::Property::RadarAltitude,   QMetaType::Float                               },
-            PII{ ObjectRadar::Property::RadarRange,      QMetaType::QSizeF                              },
+            PII{ ObjectRadar::Property::UpdateRate,      QMetaType::Float,   QSizeF{ 0.05f, 240.f }           },
+            PII{ ObjectRadar::Property::StaticTextFont,  gl_FPType                                            },
+            PII{ ObjectRadar::Property::LabelFont,       gl_FPType                                            },
+            PII{ ObjectRadar::Property::ObjectLabelFont, gl_FPType                                            },
+            PII{ ObjectRadar::Property::ForegroundColor, QMetaType::QColor                                    },
+            PII{ ObjectRadar::Property::BackgroundColor, QMetaType::QColor                                    },
+            PII{ ObjectRadar::Property::RadarCenter,     QMetaType::QPointF                                   },
+            PII{ ObjectRadar::Property::RadarAltitude,   QMetaType::Float                                     },
+            PII{ ObjectRadar::Property::RadarRange,      QMetaType::QSizeF                                    },
+            PII{ ObjectRadar::Property::AreaOpacity,     QMetaType::Int,     QSizeF{ 0.f, 255.f }             },
+            PII{ ObjectRadar::Property::OutlineStrength, QMetaType::Int,     QSizeF{ 0.f, 20.f }              },
+            PII{ ObjectRadar::Property::OutlineStyle,    QMetaType::Int,     QSizeF{ gl_FPStyle, gl_LPStyle } },
 
             /* object properties */
-            PII{ ObjectRadar::Property::Identifier,      QMetaType::QString                             },
-            PII{ ObjectRadar::Property::Type,            QMetaType::Int,     QSizeF(gl_FType, gl_LType) },
-            PII{ ObjectRadar::Property::Position,        QMetaType::QPointF                             },
-            PII{ ObjectRadar::Property::Color,           QMetaType::QColor                              },
-            PII{ ObjectRadar::Property::Area,            QMetaType::QSizeF                              },
-            PII{ ObjectRadar::Property::Altitude,        QMetaType::Float                               },
-            PII{ ObjectRadar::Property::Visibility,      QMetaType::Bool                                }
+            PII{ ObjectRadar::Property::Identifier,      QMetaType::QString                                   },
+            PII{ ObjectRadar::Property::Type,            QMetaType::Int,     QSizeF{gl_FType, gl_LType}       },
+            PII{ ObjectRadar::Property::Position,        QMetaType::QPointF                                   },
+            PII{ ObjectRadar::Property::Color,           QMetaType::QColor                                    },
+            PII{ ObjectRadar::Property::Area,            gl_PAType                                            },
+            PII{ ObjectRadar::Property::Altitude,        QMetaType::Float                                     },
+            PII{ ObjectRadar::Property::Visibility,      QMetaType::Bool                                      }
         };
 
         /**
@@ -207,15 +212,18 @@ namespace tfd {
             float                   m_altitude;  /**< altitude in meters above sea-level */
             bool                    m_isVisible; /**< whether or not the object is visible or hidden */
         };
+        using RO = RadarObject;
 
         /**
          * \class RadarObjectManager
          * \brief manages all radar present radar objects
          */
-        class RadarObjectManager {
-            friend class tests::ObjectRadarTests;
+        class RadarObjectManager : public QObject {
+            Q_OBJECT
             
         public:
+            friend class tests::ObjectRadarTests;
+
             /**
              * \brief  adds an object to the radar (if there is no object with the same identifier)
              * \param  [in] ident identifier of the radar object that is to be added
@@ -230,7 +238,11 @@ namespace tfd {
                         return false;
 
                     /* Add object entry. */
-                    return m_objMap.insert({ ident, obj }).second;
+                    bool const res = m_objMap.insert({ ident, obj }).second;
+
+                    if (res)
+                        emit objectAdded(ident);
+                    return res;
                 } catch (...) { }
 
                 return false;
@@ -242,7 +254,11 @@ namespace tfd {
              * \note   This function never throws exceptions.
              */
             bool removeObject(QString const &ident) noexcept {
-                return m_objMap.erase(ident) == 1;
+                bool const res = m_objMap.erase(ident) == 1;
+
+                if (res)
+                    emit objectRemoved(ident);
+                return res;
             }
             /**
              * \brief removes all radar objects
@@ -250,6 +266,8 @@ namespace tfd {
              */
             void clearObjects() noexcept {
                 m_objMap.clear();
+
+                emit objectRemoved({});
             }
             /**
              * \brief  retrieves a pointer to an object with a given name
@@ -270,10 +288,68 @@ namespace tfd {
                 return std::optional<priv::RadarObject *>(&((*it).second));
             }
 
+        signals:
+            /**
+             * \brief emitted when an object was successfully added
+             * \param [in] ident identifier of the object that was added
+             */
+            void objectAdded(QString const &ident);
+            /**
+             * \brief emitted when an (or all) object was successfully removed
+             * \param [in] ident identifier of removed object, or empty if all objects were removed
+             * \note  The *std::optional* parameter is empty if all objects were removed, otherwise
+             *        it holds the name of the removed object as a *QString*.
+             */
+            void objectRemoved(std::optional<QString> const &ident);
+
         private:
-            std::unordered_map<QString, priv::RadarObject > m_objMap; /**< radar object container */
+            std::unordered_map<QString, priv::RO> m_objMap; /**< radar object container */
         };
         using ROM = RadarObjectManager;
+    }
+
+
+    /* miscellaneous internal functions used by the radar */
+    namespace priv {
+        /**
+         * \brief tries to (re-)initialize internal repaint timer
+         *
+         * When the widget is constructed, the repaint timer is initialized with the initial
+         * (default) update-rate (60hz). When the update rate is changed in response to a call
+         * to ObjectRadar::setProperty(), this function is called again on the running timer
+         * to make sure it's updated properly. Using this simplistic approach, depending on the
+         * ratio between the old and the new update rate, there might be a small lag between the
+         * last frame ratio using the old update rate and the first frame using the new update
+         * rate.
+         * 
+         * \param [in] updpersec new updates per second, in 1/f seconds
+         * \param [out] timer pointer to timer object to modify
+         * \note  If **timer** is *nullptr* or the update interval of the timer is the same as
+         *        the new update interval, the function does nothing.
+         */
+        static void int_tryInitializeRepaintTimer(float const updpersec, QTimer *timer) noexcept {
+            /* Calculate new interval. */
+            auto const ninterval = std::chrono::duration<float, std::milli>(1000.f / updpersec).count();
+            /*
+             * If the timer object is invalid or the new interval equals to the new interval,
+             * do nothing.
+             */
+            if (timer == nullptr || timer->interval() == ninterval)
+                return;
+
+            /* Update interval and restart. */
+            timer->stop();
+            timer->setInterval(ninterval);
+            timer->start();
+        }
+
+        /**
+         * \brief
+         */
+        static bool int_drawCompass(ObjectRadarPrivate *data, QPixmap &target) noexcept {
+            // TODO: document
+            // TODO: implement
+        }
     }
 }
 
@@ -285,24 +361,65 @@ namespace tfd {
      * \class ObjectRadarPrivate
      * \brief internal state of object radar
      */
-    class ObjectRadarPrivate {
+    class ObjectRadarPrivate : public QObject {
+        Q_OBJECT
+
+    public slots:
+        /**
+         * \brief updates the internal cache that is used to store prepared display
+         *        resources and computed but rarely changed computation results
+         * 
+         * This function is usually not called by the user or the programmar explicitly.
+         * It's intended to be used as a slot. The function decides what resources to
+         * update based on the parameters of the signal.
+         * 
+         * \param [in] prop index of the property that was updated
+         * \param [in] val new value of the property
+         */
+        void updateCache(ObjectRadar::Property prop, QVariant const &val) {
+            /* Whether or not to update (= (re-)initialize) entire cache. */
+            bool const isall = prop == static_cast<ObjectRadar::Property>(INT_MAX);
+            
+            /* Update what needs to be updated. */
+            switch (prop) {
+                // TODO: implement
+            }
+        }
+        /**
+         */
+        void updateTrackedObject(std::optional<QString> const &ident) {
+
+        }
+
+    private:
         friend class ObjectRadar;
         friend class tests::ObjectRadarTests;
 
         /* widget view settings */
-        bool    m_isAutoUpdate = false;                            /**< automatically update view when property is changed */
-        float   m_updateRate   = 30.f;                             /**< updates (redraws) per second */
-        QPointF m_radarCenter  = QPointF{ 0.f, 0.f };              /**< center point of the object radar, in [lat, long] */
-        QSizeF  m_radarRange   = QSizeF{ 5.f, 35.f };              /**< range of the radar view in [min, max] meters */
-        float   m_radarAlt     = 0.f;                              /**< altitude of the radar center, in meters above sea-level */
-        QString m_defFont      = QString(":/fonts/B612_Mono.ttf"); /**< font used to display identifiers and overlays */
-        int     m_defFontSize  = 10;                               /**< font size for default text, identifiers, markers, etc. */
-        QColor  m_fgndColor    = QColor(Qt::gray);                 /**< color used for text and indicators */
-        QColor  m_bgndColor    = QColor(Qt::black);                /**< color used for backgrounds and surface fills */
+        float     m_updateRate      = 30.f;                              /**< updates (redraws) per second */
+        QPointF   m_radarCenter     = QPointF{ 0.f, 0.f };               /**< center point of the object radar, in [lat, long] */
+        QSizeF    m_radarRange      = QSizeF{ 5.f, 35.f };               /**< range of the radar view in [min, max] meters */
+        float     m_radarAlt        = 0.f;                               /**< altitude of the radar center, in meters above sea-level */
+        FP        m_staticTextFont  = FP{ ":/fonts/B612_Mono.ttf", 10 }; /**< properties for the static font INSIDE the radar view */
+        FP        m_labelFont       = FP{ ":/fonts/B612_Mono.ttf", 11 }; /**< properties for label font OUTSIDE the radar view */
+        FP        m_objLabelFont    = FP{ ":/fonts/B612_Mono.ttf", 9 };  /**< properties of the font used for object labels INSIDE the radar view */
+        QColor    m_fgndColor       = QColor(Qt::gray);                  /**< color used for text and indicators */
+        QColor    m_bgndColor       = QColor(Qt::black);                 /**< color used for backgrounds and surface fills */
+        int       m_areaOpacity     = 0.4f * 255;                        /**< opacity used for fill colors, in range [0 ... 255] */
+        int       m_outlineStrength = 2;                                 /**< width of area and path outlines, in pixels */
+        int       m_outlineStyle    = Qt::SolidLine;                     /**< style of path and area outline, one value of the *Qt::PenStyle* enum */
+        priv::RO *m_trackedObject   = nullptr;                           /**< currently tracked radar object or *nullptr* if no object is being tracked */
 
         /* utilities */
         QTimer    m_redrawTimer; /**< widget redraw timer (m_updateRate hz period) */
         priv::ROM m_objManager;  /**< radar object manager */
+
+        /* cached resources */
+        QPixmap m_c_radarCompass;         /**< pre-rendered image of the compass */
+        QPixmap m_c_radarScale;           /**< pre-rendered image of the radar scale (circles around center, etc.) */
+        QFont   m_c_radarStaticTextFont;  /**< cached font for all static text that is WITHIN the radar view */
+        QFont   m_c_radarLabelFont;       /**< cached font used for labels OUTSIDE the radar view */
+        QFont   m_c_radarObjectLabelFont; /**< cached font used for object labels INSIDE the radar view */
     };
 
 
@@ -313,18 +430,23 @@ namespace tfd {
         setFixedSize(dim);
         setCursor(Qt::CursorShape::BlankCursor);
 
+        /* Initialize cached resources. */
+        m_data->updateCache(static_cast<ObjectRadar::Property>(INT_MAX), {});
+        connect(this, &ObjectRadar::propertyValueChanged, m_data.get(), &ObjectRadarPrivate::updateCache);
+        connect(&m_data->m_objManager, &priv::ROM::objectAdded, m_data.get(), &ObjectRadarPrivate::updateTrackedObject);
+        connect(&m_data->m_objManager, &priv::ROM::objectRemoved, m_data.get(), &ObjectRadarPrivate::updateTrackedObject);
+
         /* Setup repaint timer. */
         connect(&m_data->m_redrawTimer, &QTimer::timeout, this, [&]() {
             /*
              * Issue repaint immediately. In this situation, we do not want to queue a repaint via
-             * update() even though it would probably not make a big difference in practice since
+             * *QWidget::update()* even though it would probably not make a big difference in practice since
              * repaint messages are high-priority.
              */
             repaint();
         });
         m_data->m_redrawTimer.setTimerType(Qt::TimerType::PreciseTimer);
-        m_data->m_redrawTimer.setInterval(std::chrono::duration<float, std::milli>(1000.f / m_data->m_updateRate).count());
-        m_data->m_redrawTimer.start();
+        priv::int_tryInitializeRepaintTimer(m_data->m_updateRate, &m_data->m_redrawTimer);
     }
 
     ObjectRadar::~ObjectRadar() {
@@ -360,10 +482,7 @@ namespace tfd {
 
         /* Select the desired property. */
         switch (prop) {
-            case ObjectRadar::Property::AutoUpdate:      return m_data->m_isAutoUpdate;
             case ObjectRadar::Property::UpdateRate:      return m_data->m_updateRate;
-            case ObjectRadar::Property::DefaultFont:     return m_data->m_defFont;
-            case ObjectRadar::Property::DefaultFontSize: return m_data->m_defFontSize;
             case ObjectRadar::Property::ForegroundColor: return m_data->m_fgndColor;
             case ObjectRadar::Property::BackgroundColor: return m_data->m_bgndColor;
             case ObjectRadar::Property::RadarCenter:     return m_data->m_radarCenter;
@@ -401,20 +520,27 @@ namespace tfd {
         if (!priv::int_isValidPropertyValue(prop, val))
             return false;
 
-        /* Update property. */
+        /* Update selected view property. */
         switch (prop) {
-            case ObjectRadar::Property::AutoUpdate:      m_data->m_isAutoUpdate = val.toBool();        return true;
-            case ObjectRadar::Property::UpdateRate:      m_data->m_updateRate   = val.toFloat();       return true;
-            case ObjectRadar::Property::DefaultFont:     m_data->m_defFont      = val.toString();      return true;
-            case ObjectRadar::Property::DefaultFontSize: m_data->m_defFontSize  = val.toInt();         return true;
-            case ObjectRadar::Property::ForegroundColor: m_data->m_fgndColor    = val.value<QColor>(); return true;
-            case ObjectRadar::Property::BackgroundColor: m_data->m_bgndColor    = val.value<QColor>(); return true;
-            case ObjectRadar::Property::RadarCenter:     m_data->m_radarCenter  = val.toPointF();      return true;
-            case ObjectRadar::Property::RadarAltitude:   m_data->m_radarAlt     = val.toFloat();       return true;
-            case ObjectRadar::Property::RadarRange:      m_data->m_radarRange   = val.toSizeF();       return true;
+            case ObjectRadar::Property::StaticTextFont:  m_data->m_staticTextFont  = val.value<FontProperties>(); break;
+            case ObjectRadar::Property::LabelFont:       m_data->m_labelFont       = val.value<FontProperties>(); break;
+            case ObjectRadar::Property::ObjectLabelFont: m_data->m_objLabelFont    = val.value<FontProperties>(); break;
+            case ObjectRadar::Property::ForegroundColor: m_data->m_fgndColor       = val.value<QColor>();         break;
+            case ObjectRadar::Property::BackgroundColor: m_data->m_bgndColor       = val.value<QColor>();         break;
+            case ObjectRadar::Property::RadarCenter:     m_data->m_radarCenter     = val.toPointF();              break;
+            case ObjectRadar::Property::RadarAltitude:   m_data->m_radarAlt        = val.toFloat();               break;
+            case ObjectRadar::Property::UpdateRate:      m_data->m_updateRate      = val.toFloat();               break;
+            case ObjectRadar::Property::RadarRange:      m_data->m_radarRange      = val.toSizeF();               break;
+            case ObjectRadar::Property::AreaOpacity:     m_data->m_areaOpacity     = val.toInt();                 break;
+            case ObjectRadar::Property::OutlineStrength: m_data->m_outlineStrength = val.toInt();                 break;
+            case ObjectRadar::Property::OutlineStyle:    m_data->m_outlineStyle    = val.toInt();                 break;
+            default:
+                /* Provided invalid property index. */
+                return false;
         }
 
-        return false;
+        emit propertyValueChanged(prop, val);
+        return true;
     }
 
     bool ObjectRadar::setProperty(QString const &ident, ObjectRadar::Property prop, QVariant const &val) {
@@ -449,6 +575,24 @@ namespace tfd {
         return false;
     }
 
+    std::optional<QString> const ObjectRadar::getTrackedObject() const noexcept {
+        if (m_data->m_trackedObject == nullptr)
+            return std::optional<QString>{};
+
+        // TODO implement
+        return std::optional<QString>{};
+    }
+
+    void ObjectRadar::setTrackedObject(QString const &ident) noexcept {
+        /* Try finding the referenced object. */
+        priv::RadarObject *ro = m_data->m_objManager.getObject(ident).value_or(nullptr);
+        if (ro == nullptr)
+            return;
+
+        /* Update tracked object cache. */
+        m_data->m_trackedObject = ro;
+    }
+
     void ObjectRadar::paintEvent(QPaintEvent *pe) {
         /* Setup painter. */
         QPainter painter(this);
@@ -458,6 +602,29 @@ namespace tfd {
     }
 }
 
+
+/* polygon area */
+namespace tfd {
+    bool RadarArea::addVertex(QPointF const &vertex) noexcept {
+        try {
+            m_vertices.push_back(vertex);
+        } catch (...) { return false; }
+
+        return true;
+    }
+
+    bool RadarArea::removeVertex(int index) noexcept {
+        if (m_vertices.size() >= index || index < 0)
+            return false;
+
+        m_vertices.erase(m_vertices.begin() + index);
+        return true;
+    }
+
+    void RadarArea::clearVertices() noexcept {
+        m_vertices.clear();
+    }
+}
 
 
 /* unit tests for object radar */
@@ -649,6 +816,24 @@ namespace tfd {
                 /* Delete all objects and verify size again. */
                 m_radar.removeAllObjects();
                 QVERIFY(m_radar.m_data->m_objManager.m_objMap.size() == 0);
+            }
+            /**
+             * \brief tests whether the view can track an object and behave accordingly 
+             */
+            void testTrackedRadarObject() {
+                // TODO: implement
+            }
+            /**
+             * \brief tests the functionality of the RadarArea class
+             */
+            void testRadarArea() {
+                // TODO: implement
+            }
+            /**
+             * \brief tests the functionality of the RadarPath class
+             */
+            void testRadarPath() {
+                // TODO: implement
             }
         };
     }
